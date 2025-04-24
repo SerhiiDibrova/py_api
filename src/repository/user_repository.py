@@ -1,5 +1,5 @@
 from typing import List
-from models import User
+from src.models import User
 
 _fake_db = [
     User(id=1, name="Alice", email="alice@example.com"),
