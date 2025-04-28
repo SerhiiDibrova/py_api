@@ -1,36 +1,45 @@
-from typing import Any, Optional
+from typing import Any, Mapping, Optional
 
 from fastapi.encoders import jsonable_encoder
 from starlette import status
 from starlette.responses import JSONResponse
 
 
-def success_response(response_data: Optional[Any] = None) -> JSONResponse:
+def success_response(
+    data: Optional[Any] = None,
+    message: Optional[str] = None,
+    status_code: int = status.HTTP_200_OK,
+    headers: Optional[Mapping[str, str]] = None,
+) -> JSONResponse:
     """
-    Returns a JSON response with the given status code and the given data.
-    :param response_data: The data to be returned.
-    :return: A JSON response with the given status code and the given data.
+    Return a JSONResponse with success=True, optional data and message.
     """
-    response_json = {"success": True}
+    payload: dict[str, Any] = {"success": True}
 
-    if response_data is not None:
-        response_json["data"] = jsonable_encoder(response_data)
+    if message is not None:
+        payload["message"] = message
 
-    return JSONResponse(response_json, status_code=status.HTTP_200_OK)
+    if data is not None:
+        payload["data"] = jsonable_encoder(data)
+
+    return JSONResponse(content=payload, status_code=status_code, headers=headers)
 
 
 def error_response(
     errors: Optional[Any] = None,
+    message: Optional[str] = None,
     status_code: int = status.HTTP_500_INTERNAL_SERVER_ERROR,
+    headers: Optional[Mapping[str, str]] = None,
 ) -> JSONResponse:
     """
-    Returns a JSON response with the given status code and the given errors.
-    :param errors: The errors to be returned.
-    :param status_code: The status code of the response.
-    :return: A JSON response with the given status code and the given errors.
+    Return a JSONResponse with success=False, optional errors list and message.
     """
-    response_json = {"success": False}
-    if errors is not None:
-        response_json["errors"] = jsonable_encoder(errors)
+    payload: dict[str, Any] = {"success": False}
 
-    return JSONResponse(response_json, status_code=status_code)
+    if message is not None:
+        payload["message"] = message
+
+    if errors is not None:
+        payload["errors"] = jsonable_encoder(errors)
+
+    return JSONResponse(content=payload, status_code=status_code, headers=headers)
