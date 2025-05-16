@@ -1,52 +1,24 @@
-from fastapi import APIRouter, Depends, HTTPException, status
-from typing import List
-from uuid import UUID
+import logging
+from src.core.database import IDatabase
 
-from src.core.database import DatabaseConnection
-from src.core.dependencies import get_db_connection
-from src.schemas.requests import OrderCreateRequest
-from src.schemas.responses import OrderListResponse, OrderResponse
-from src.core.responses import success_response
+class OrdersRouter:
+    def __init__(self, database: IDatabase):
+        self.database = database
+        self.logger = logging.getLogger(__name__)
 
-router = APIRouter(
-    prefix="/orders",
-    tags=["orders"],
-    responses={404: {"description": "Not found"}}
-)
+    def save_order(self, order_data: str) -> bool:
+        if not isinstance(order_data, str):
+            self.logger.error("Invalid order data. Order data must be a string.")
+            return False
 
+        try:
+            if not self.database.is_connected():
+                self.logger.error("Database connection is not established.")
+                return False
 
-@router.get("", response_model=OrderListResponse, summary="List orders")
-async def list_orders(
-    db: DatabaseConnection = Depends(get_db_connection),
-):
-    orders = db.query_all("SELECT * FROM orders ORDER BY created_at DESC")
-    return success_response(data=orders)
-
-
-@router.get("/{order_id}", response_model=OrderResponse, summary="Get an order")
-async def get_order(
-    order_id: UUID,
-    db: DatabaseConnection = Depends(get_db_connection),
-):
-    order = db.query_one("SELECT * FROM orders WHERE id = %s", (order_id,))
-    if not order:
-        raise HTTPException(status.HTTP_404_NOT_FOUND, detail="Order not found")
-    return success_response(data=order)
-
-
-@router.post(
-    "",
-    response_model=OrderResponse,
-    status_code=status.HTTP_201_CREATED,
-    summary="Create an order",
-)
-async def create_order(
-    payload: OrderCreateRequest,
-    db: DatabaseConnection = Depends(get_db_connection),
-):
-    # flatten items into a DB insert — you’ll need your own SQL here
-    created = db.query_one(
-        "INSERT INTO orders (user_email, product_ids) VALUES (%s, %s) RETURNING *",
-        (payload.user_email, payload.product_ids),
-    )
-    return success_response(data=created)
+            self.database.Save(order_data)
+            self.logger.info("Order saved successfully.")
+            return True
+        except Exception as e:
+            self.logger.error(f"An error occurred while saving the order: {str(e)}")
+            return False

@@ -1,7 +1,7 @@
 import logging
 
 import uvicorn
-from fastapi import FastAPI
+from fastapi import FastAPI, Depends
 from fastapi.exceptions import RequestValidationError
 from fastapi.responses import JSONResponse
 from starlette import status
@@ -12,6 +12,7 @@ from src.config.settings import get_settings
 from src.core.database import DatabaseConnection
 from src.core.responses import error_response
 from src.routers import api_router
+from src.animals import IAnimal, get_animal
 
 settings = get_settings()
 
@@ -56,6 +57,11 @@ async def exception_handler(request: Request, exc: Exception) -> JSONResponse:
     logger = request.app.state.logger
     logger.error(f"{exc}")
     return error_response(errors=str(exc), status_code=status.HTTP_400_BAD_REQUEST)
+
+
+@app.get("/get_animal_sound/{animal_type}")
+async def get_animal_sound(animal: IAnimal = Depends(get_animal)) -> str:
+    return animal.speak()
 
 
 app.include_router(api_router)
